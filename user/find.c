@@ -56,7 +56,7 @@ void find(char *path, char *name) {
             *p++ = '/';
             while (read(fd, &de, sizeof(de)) == sizeof(de)) {
                 // printf("%d %s\n", de.inum, de.name);
-                if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
+                if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0 || strcmp(de.name, "") == 0)
                     continue;
                 memmove(p, de.name, DIRSIZ);
                 p[DIRSIZ] = 0;
