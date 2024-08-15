@@ -613,6 +613,21 @@ kill(int pid)
   return -1;
 }
 
+int proc_pgaccess(uint64 va, int npages, uint64 ra) {
+  uint32 res = 0;
+  const struct proc* p = myproc();
+  if (p == 0)
+    return -1;
+
+  for (int i = 0; i < npages; i++) {
+    uint64 pva = PGROUNDDOWN(va + i * PGSIZE);
+    if (uvmpgaccess(p->pagetable, pva)) {
+      res |= 1 << i;
+    }
+  }
+  return copyout(p->pagetable, ra, (char*)&res, sizeof(res));
+}
+
 // Copy to either a user address, or kernel address,
 // depending on usr_dst.
 // Returns 0 on success, -1 on error.

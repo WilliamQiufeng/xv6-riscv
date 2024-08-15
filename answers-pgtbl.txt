@@ -1,0 +1,4 @@
+1. uptime. The tick can be written to USYSCALL per timer interrupt.
+2. page 0, 1 and 2 correspond to text, unused and data pages, respectively. Text and data have permission RWXU, and unused RWX.
+page 1 (unused) cannot be accessed from user space because it doesn't have the U flag.
+The last three pages are USYSCALL, TRAPFRAME and TRAMPOLINE.

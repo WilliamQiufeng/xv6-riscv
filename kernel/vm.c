@@ -261,6 +261,16 @@ uvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
   return newsz;
 }
 
+int uvmpgaccess(const pagetable_t pagetable, uint64 va) {
+  pte_t* pte = walk(pagetable, PGROUNDDOWN(va), 0);
+  if (pte == 0)
+    return 0;
+  // printf("PTE of %p = %p A=%d\n", va, *pte, (*pte & PTE_A) != 0);
+  int res = (*pte & PTE_A) != 0;
+  *pte &= ~PTE_A;
+  return res;
+}
+
 // Recursively free page-table pages.
 // All leaf mappings must already have been removed.
 void
