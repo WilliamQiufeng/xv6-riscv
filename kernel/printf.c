@@ -23,6 +23,22 @@ static struct {
   int locking;
 } pr;
 
+void backtrace(void) {
+  uint64 ra, fp;
+  asm volatile (
+    "mv %0, s0"
+    : "=r" (fp)
+  );
+  while (1) {
+    ra = *(uint64 *) (fp - 8);
+    uint64 new_fp = *(uint64 *) (fp - 16);
+    if (new_fp < fp)
+      break;
+    printf("%p\n", ra);
+    fp = new_fp;
+  }
+}
+
 static char digits[] = "0123456789abcdef";
 
 static void
@@ -121,6 +137,7 @@ panic(char *s)
   printf("panic: ");
   printf(s);
   printf("\n");
+  backtrace();
   panicked = 1; // freeze uart output from other CPUs
   for(;;)
     ;

@@ -1,0 +1,13 @@
+1. The a# registers, starting from a0. 13 is stored in a2 in call to printf.
+2. With no -O options, call to f() is
+  4e:	00000097          	auipc	ra,0x0
+  52:	fce080e7          	jalr	-50(ra) # 1c <f>
+call to g() is
+  30:	00000097          	auipc	ra,0x0
+  34:	fd0080e7          	jalr	-48(ra) # 0 <g>
+3. 0xa34
+4. 0x70
+5. i) 0x726c6400 ii) no
+6. The va_list ap is a pointer to the list of arguments. va_next advances the pointer by sizeof(type) and retrieves the
+    value at that addr. There are only 1 variable argument given but the second one is requested. This is undefined and
+    the access can go beyond boundary, causing page fault.
