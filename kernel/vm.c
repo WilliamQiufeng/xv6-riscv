@@ -178,7 +178,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free){
+    if(do_free && (*pte & PTE_COW) == 0){
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
     }
@@ -303,7 +303,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -311,19 +310,43 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
+    if ((*pte & PTE_W) != 0)
+      *pte = ((*pte) & ~PTE_W) | PTE_COW;
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
   }
   return 0;
 
  err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
+  uvmunmap(new, 0, i / PGSIZE, 0);
+  return -1;
+}
+
+int cow(pagetable_t proc_pagetable, uint64 va) {
+  pte_t* proc_pte;
+  void* mem;
+  if ((proc_pte = walk(proc_pagetable, va, 0)) == 0) {
+    printf("COW proc walk error\n");
+    return -1;
+  }
+  if ((*proc_pte & PTE_COW) == 0) {
+    printf("COW not COW\n");
+    return -1;
+  }
+  if((mem = kalloc()) == 0)
+    goto err;
+  uint flags = (PTE_FLAGS(*proc_pte) & ~PTE_COW) | PTE_W;
+
+  uint64 pa = PTE2PA(*proc_pte);
+  memmove(mem, (char*)pa, PGSIZE);
+  *proc_pte = PA2PTE(mem) | flags | PTE_V;
+
+  return 0;
+
+  err:
+  kfree(mem);
   return -1;
 }
 
@@ -350,6 +373,8 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+    printf("c");
+    cow(pagetable, va0);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;

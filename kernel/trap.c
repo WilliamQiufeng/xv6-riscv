@@ -65,6 +65,13 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if (r_scause() == 15) {
+    struct proc *p = myproc();
+    if (cow(p->pagetable, r_stval()) != 0) {
+      printf("Process tried to access address %p that is not writable\n", r_stval());
+      p->trapframe->epc += 4;
+    } else {
+    }
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
